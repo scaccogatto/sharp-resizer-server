@@ -13,7 +13,7 @@ const recursive = require("recursive-readdir")
 // utils
 const inputDir = typeof argv.i !== 'undefined' ? _.trim(argv.i) : 'input'
 const outDir = typeof argv.o !== 'undefined' ? _.trim(argv.o) : 'output'
-const multiplier = typeof argv.m !== 'undefined' ? _.toInteger(_.trim(argv.m)) / 100 : 1920
+const multiplier = typeof argv.m !== 'undefined' ? _.toInteger(_.trim(argv.m)) / 100 : 19.20
 const threads =  typeof argv.t !== 'undefined' ? _.toInteger(_.trim(argv.t)) : 1
 const port =  typeof argv.p !== 'undefined' ? _.toInteger(_.trim(argv.p)) : 4080
 const entryPoint =  typeof argv.e !== 'undefined' ? _.trim(argv.e) : 'images'
