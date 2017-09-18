@@ -1,0 +1,37 @@
+{
+  "name": "sharp-resizer-server",
+  "version": "0.5.0",
+  "description": "watch images and resize them",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scaccogatto/sharp-resizer-server.git"
+  },
+  "keywords": [
+    "sharp",
+    "resize",
+    "node",
+    "server",
+    "watch"
+  ],
+  "author": "Marco 'Gatto' Boffo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/scaccogatto/sharp-resizer-server/issues"
+  },
+  "homepage": "https://github.com/scaccogatto/sharp-resizer-server#readme",
+  "dependencies": {
+    "chalk": "^2.1.0",
+    "chokidar": "^1.7.0",
+    "express": "^4.15.4",
+    "fs-extra": "^4.0.2",
+    "lodash": "^4.17.4",
+    "minimist": "^1.2.0",
+    "p-queue": "^2.2.0",
+    "recursive-readdir": "^2.2.1",
+    "sharp": "^0.18.3"
+  }
+}
