@@ -1,37 +1,38 @@
 {
   "name": "sharp-resizer-server",
-  "version": "0.5.0",
-  "description": "watch images and resize them",
+  "version": "1.0.0",
+  "description": "Automatic Node.js image resizer server with srcset-ready JSON API",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/scaccogatto/sharp-resizer-server.git"
   },
-  "keywords": [
-    "sharp",
-    "resize",
-    "node",
-    "server",
-    "watch"
-  ],
+  "keywords": ["sharp", "resize", "node", "server", "watch", "srcset", "images"],
   "author": "Marco 'Gatto' Boffo",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/scaccogatto/sharp-resizer-server/issues"
   },
   "homepage": "https://github.com/scaccogatto/sharp-resizer-server#readme",
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "chalk": "^2.1.0",
-    "chokidar": "^1.7.0",
-    "express": "^4.15.4",
-    "fs-extra": "^4.0.2",
-    "lodash": "^4.17.4",
-    "minimist": "^1.2.0",
-    "p-queue": "^2.2.0",
-    "recursive-readdir": "^2.2.1",
-    "sharp": "^0.18.3"
+    "chalk": "^5.6.2",
+    "chokidar": "^5.0.0",
+    "commander": "^15.0.0",
+    "express": "^5.2.1",
+    "p-queue": "^9.3.0",
+    "sharp": "^0.35.2"
+  },
+  "devDependencies": {
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.9"
   }
 }

@@ -1,122 +1,131 @@
 # sharp-resizer-server
-> an automatic node-based image resizer server, with frontend-friendly API
 
-## Install and Run
-1. `git clone git@github.com:scaccogatto/sharp-resizer-server.git`
-2. `cd sharp-resizer-server`
-3. `npm install`
-4. `npm run start`
+[![CI](https://github.com/scaccogatto/sharp-resizer-server/actions/workflows/ci.yml/badge.svg)](https://github.com/scaccogatto/sharp-resizer-server/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Node ≥20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 
-## Start resizing
-- After installation, everytime you add a new folder inside `input`, a **watcher** will be started, listening to any change
-- The folder's name should be a `Number` and it will be treated as a `px` value multiplied for `19.20` by default and scaled downwards the other folders inside `input`
-- Add images inside your preferred folder and the server will scale downwards automatically
-- Open a browser and call `localhost:4080/images/json`
+Watch a directory tree of source images and automatically produce responsive,
+srcset-ready resized copies — then serve them (and a JSON manifest) over HTTP.
 
-## Output
-The API entry point (`images/json`) will output a JSON file ready for your frontend usage.
-The output format is:
+## How it works
+
 ```
+input/
+  100/  ← drop images here; they're resized to every folder ≤ 100
+    hero.jpg
+  72/
+  37/
+  26/
+  16/
+
+output/           ← generated automatically
+  100/hero.jpg    (1920 px wide by default)
+  72/hero.jpg     (1382 px)
+  37/hero.jpg     (710 px)
+  26/hero.jpg     (499 px)
+  16/hero.jpg     (307 px)
+```
+
+1. Folder names are **numbers** — they act as breakpoint labels (e.g., `100` for desktop, `16` for small mobile).
+2. The server derives pixel widths as `folder × multiplier` (default multiplier = `1920 / 100 = 19.2`).
+3. Placing an image in `input/N/` resizes it into every folder `M ≤ N` (i.e., it won't upscale by default).
+4. `GET /images/json` returns a srcset-ready JSON manifest — see [Output format](#output-format).
+
+## Prerequisites
+
+| Requirement | Version |
+|---|---|
+| Node.js | ≥ 20 |
+| libvips | bundled via `sharp` prebuilt — no extra install needed on Linux/macOS/Windows |
+
+## Install and run
+
+```bash
+git clone https://github.com/scaccogatto/sharp-resizer-server.git
+cd sharp-resizer-server
+npm install
+npm start
+```
+
+Then add folders and images to `input/` — the server watches for changes and resizes on the fly.
+
+## CLI options
+
+| Flag | Default | Description |
+|---|---|---|
+| `-i, --input <dir>` | `input` | Source directory to watch |
+| `-o, --output <dir>` | `output` | Output directory for resized images |
+| `-m, --multiplier <n>` | `1920` | Pixel width of folder-100 images (e.g. `1920` → folder 100 = 1920 px wide, folder 72 = 1382 px) |
+| `-t, --threads <n>` | `1` | Max concurrent resize operations |
+| `-p, --port <n>` | `4080` | HTTP port |
+| `-e, --entry <path>` | `images` | URL entry-point prefix |
+| `--allow-upscale` | off | Also resize images into folders **larger** than their source folder |
+| `-h, --help` | — | Show help |
+
+**Example:**
+
+```bash
+node index.js -i src/images -o public/images -m 1280 -t 4 -p 3000 -e assets
+```
+
+## Output format
+
+`GET http://localhost:4080/images/json`
+
+```json
 {
-  "bigImage.jpg": {
+  "hero.jpg": {
     "sizes": "100w",
-    "srcset": "/images/output/100/bigImage.jpg 100w, /images/output/72/bigImage.jpg 72w, /images/output/37/bigImage.jpg 37w, /images/output/26/bigImage.jpg 26w, /images/output/16/bigImage.jpg 16w",
-    "src": "/images/output/100/bigImage.jpg"
-  },
-  "mediumImage.jpg": {
-    "sizes": "37w",
-    "srcset": "/images/output/37/mediumImage.jpg 37w, /images/output/26/mediumImage.jpg 26w, /images/output/16/mediumImage.jpg 16w",
-    "src": "/images/output/37/mediumImage.jpg"
-  },
+    "srcset": "/images/output/100/hero.jpg 100w, /images/output/72/hero.jpg 72w, /images/output/37/hero.jpg 37w, /images/output/26/hero.jpg 26w, /images/output/16/hero.jpg 16w",
+    "src": "/images/output/100/hero.jpg"
+  }
 }
 ```
-An `Object` containing images' names as keys and every key is an `Object` containing:
-- `sizes`: the greatest width found for that file
-- `srcset`: a string for `<picture>` TAGs, ready for use
-- `src`: for image fallback
-## Example
-Tree:
-```
-input
---| 100
---| 72
---| 37
---| 26
---| 16
 
-output
---| 100
---| 72
---| 37
---| 26
---| 16
-```
-Add an image into `100` folder
-```
-input
---| 100
-  | -- bigImage.png
---| 72
---| 37
---| 26
---| 16
+| Field | Description |
+|---|---|
+| `sizes` | Largest folder label (`Nw`) |
+| `srcset` | All variants, largest-first — ready for `<img srcset>` or `<source srcset>` |
+| `src` | Fallback URL pointing to the largest variant |
 
-output
---| 100
-  | -- bigImage.png
---| 72
-  | -- bigImage.png
---| 37
-  | -- bigImage.png
---| 26
-  | -- bigImage.png
---| 16
-  | -- bigImage.png
-```
-Add an image into `37` folder
-```
-input
---| 100
-  | -- bigImage.png
---| 72
---| 37
-  | -- mediumImage.png
---| 26
---| 16
+**Frontend usage:**
 
-output
---| 100
-  | -- bigImage.png
---| 72
-  | -- bigImage.png
---| 37
-  | -- bigImage.png
-  | -- mediumImage.png
---| 26
-  | -- bigImage.png
-  | -- mediumImage.png
---| 16
-  | -- bigImage.png
-  | -- mediumImage.png  
-```
-Let's print the **bigImage** then, **after** reading things from API:
-```
+```html
 <picture>
-  <source sizes="100w" srcset="/images/output/100/bigImage.jpg 100w, /images/output/72/bigImage.jpg 72w, /images/output/37/bigImage.jpg 37w, /images/output/26/bigImage.jpg 26w, /images/output/16/bigImage.jpg 16w",
-    "src": "/images/output/100/bigImage.jpg" />
-  <img src="/images/output/100/bigImage.jpg" />
+  <source
+    sizes="100vw"
+    srcset="/images/output/100/hero.jpg 100w,
+            /images/output/72/hero.jpg 72w,
+            /images/output/37/hero.jpg 37w" />
+  <img src="/images/output/100/hero.jpg" alt="Hero" />
 </picture>
 ```
 
-## Advanced
-### Script parameters
-You can also specify some script parameters such as:
-- `-i` input directory
-- `-o` output directory
-- `-m` pixel multipllier (when `m = 1920` folder `100` -> `1920px`)
-- `-t` maximum concurrent conversion threads
-- `-p` API local server port
-- `-e` API entry point
+Or fetch the manifest and render dynamically:
 
-### Defaults
-`node index.js -i input -o output -m 1920 -t 1 -p 4080 -e images`
+```js
+const manifest = await fetch('/images/json').then(r => r.json())
+// manifest['hero.jpg'].srcset → ready-made srcset string
+```
+
+Static files are also served at `http://localhost:4080/images/output/<size>/<filename>`.
+
+## Performance notes
+
+- Resize operations run through a `p-queue` (default concurrency 1; raise with `-t`).
+- The `/json` endpoint is cached in memory and invalidated automatically whenever a resize completes or a source image is deleted.  ETag + `304 Not Modified` support is included for efficient polling clients.
+
+## Contributing
+
+Open issues are the best starting point:
+
+| # | Title | Status |
+|---|---|---|
+| [#1](https://github.com/scaccogatto/sharp-resizer-server/issues/1) | Better README | Resolved in v1.0.0 |
+| [#2](https://github.com/scaccogatto/sharp-resizer-server/issues/2) | Upscaling | Resolved — `--allow-upscale` flag |
+| [#3](https://github.com/scaccogatto/sharp-resizer-server/issues/3) | Testing | Resolved — Vitest suite added |
+| [#4](https://github.com/scaccogatto/sharp-resizer-server/issues/4) | Error parsing | Resolved — try/catch in resizer |
+| [#7](https://github.com/scaccogatto/sharp-resizer-server/issues/7) | Better args | Resolved — Commander replaces minimist |
+| [#8](https://github.com/scaccogatto/sharp-resizer-server/issues/8) | Cache reply | Resolved — ETag + in-memory cache |
+| [#5](https://github.com/scaccogatto/sharp-resizer-server/issues/5) | Output template | Help wanted |
+| [#6](https://github.com/scaccogatto/sharp-resizer-server/issues/6) | Output mode | Help wanted |
