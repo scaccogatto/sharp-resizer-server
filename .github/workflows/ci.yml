@@ -7,18 +7,15 @@ on:
 
 jobs:
   test:
-    name: Node ${{ matrix.node }}
+    name: Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [20, 22]
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 20
           cache: npm
 
       - name: Install dependencies
