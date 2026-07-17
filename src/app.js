@@ -73,7 +73,12 @@ export function createApp({ outDir, outDirName, entryPoint }) {
 
   // Fix: original was missing leading slash — `app.use(\`${e}/${o}\`, ...)` resolved
   // to a path without a leading /, which doesn't match URL requests.
-  app.use(`/${entryPoint}/${outDirName}`, express.static(outDir))
+  // Resized output is content-addressed by path (size folder + filename), so
+  // clients can cache it hard; a re-render with the same name is the same image.
+  app.use(`/${entryPoint}/${outDirName}`, express.static(outDir, {
+    immutable: true,
+    maxAge: '365d',
+  }))
 
   return { app, cache }
 }

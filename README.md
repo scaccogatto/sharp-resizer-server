@@ -127,5 +127,5 @@ Open issues are the best starting point:
 | [#4](https://github.com/scaccogatto/sharp-resizer-server/issues/4) | Error parsing | Resolved — try/catch in resizer |
 | [#7](https://github.com/scaccogatto/sharp-resizer-server/issues/7) | Better args | Resolved — Commander replaces minimist |
 | [#8](https://github.com/scaccogatto/sharp-resizer-server/issues/8) | Cache reply | Resolved — ETag + in-memory cache |
-| [#5](https://github.com/scaccogatto/sharp-resizer-server/issues/5) | Output template | Help wanted |
-| [#6](https://github.com/scaccogatto/sharp-resizer-server/issues/6) | Output mode | Help wanted |
+| [#5](https://github.com/scaccogatto/sharp-resizer-server/issues/5) | Output template | Closed — not planned |
+| [#6](https://github.com/scaccogatto/sharp-resizer-server/issues/6) | Output mode | Closed — not planned |
