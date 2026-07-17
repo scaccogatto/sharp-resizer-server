@@ -1,9 +1,12 @@
 {
   "name": "sharp-resizer-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Automatic Node.js image resizer server with srcset-ready JSON API",
   "type": "module",
   "main": "index.js",
+  "bin": {
+    "sharp-resizer-server": "./index.js"
+  },
   "scripts": {
     "start": "node index.js",
     "test": "vitest run",

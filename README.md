@@ -49,6 +49,12 @@ npm start
 
 Then add folders and images to `input/` — the server watches for changes and resizes on the fly.
 
+Or run it without installing, via `npx`:
+
+```bash
+npx sharp-resizer-server -i src/images -o public/images
+```
+
 ## CLI options
 
 | Flag | Default | Description |
@@ -60,12 +66,13 @@ Then add folders and images to `input/` — the server watches for changes and r
 | `-p, --port <n>` | `4080` | HTTP port |
 | `-e, --entry <path>` | `images` | URL entry-point prefix |
 | `--allow-upscale` | off | Also resize images into folders **larger** than their source folder |
+| `--formats <list>` | none | Comma-separated extra formats to also emit alongside the original: `webp`, `avif` (e.g. `--formats webp,avif`) |
 | `-h, --help` | — | Show help |
 
 **Example:**
 
 ```bash
-node index.js -i src/images -o public/images -m 1280 -t 4 -p 3000 -e assets
+node index.js -i src/images -o public/images -m 1280 -t 4 -p 3000 -e assets --formats webp,avif
 ```
 
 ## Output format
@@ -87,11 +94,38 @@ node index.js -i src/images -o public/images -m 1280 -t 4 -p 3000 -e assets
 | `sizes` | Largest folder label (`Nw`) |
 | `srcset` | All variants, largest-first — ready for `<img srcset>` or `<source srcset>` |
 | `src` | Fallback URL pointing to the largest variant |
+| `formats` | Present only with `--formats`; `{ webp: {...}, avif: {...} }`, each shaped like the entry above plus a `type` MIME string |
+
+With `--formats webp,avif`, the manifest entry above gains:
+
+```json
+{
+  "hero.jpg": {
+    "sizes": "100w",
+    "srcset": "/images/output/100/hero.jpg 100w, ...",
+    "src": "/images/output/100/hero.jpg",
+    "formats": {
+      "webp": { "sizes": "100w", "srcset": "/images/output/100/hero.webp 100w, ...", "src": "/images/output/100/hero.webp", "type": "image/webp" },
+      "avif": { "sizes": "100w", "srcset": "/images/output/100/hero.avif 100w, ...", "src": "/images/output/100/hero.avif", "type": "image/avif" }
+    }
+  }
+}
+```
 
 **Frontend usage:**
 
 ```html
 <picture>
+  <source
+    sizes="100vw"
+    type="image/avif"
+    srcset="/images/output/100/hero.avif 100w,
+            /images/output/72/hero.avif 72w" />
+  <source
+    sizes="100vw"
+    type="image/webp"
+    srcset="/images/output/100/hero.webp 100w,
+            /images/output/72/hero.webp 72w" />
   <source
     sizes="100vw"
     srcset="/images/output/100/hero.jpg 100w,
@@ -109,6 +143,15 @@ const manifest = await fetch('/images/json').then(r => r.json())
 ```
 
 Static files are also served at `http://localhost:4080/images/output/<size>/<filename>`.
+
+## Docker
+
+```bash
+docker build -t sharp-resizer-server .
+docker run -p 4080:4080 -v $(pwd)/input:/app/input -v $(pwd)/output:/app/output sharp-resizer-server
+```
+
+Override the default flags via `CMD`, e.g. `docker run ... sharp-resizer-server -p 4080 --formats webp,avif`.
 
 ## Performance notes
 

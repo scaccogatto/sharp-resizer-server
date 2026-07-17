@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.0] — 2026-07-17
+
+### New features
+- `--formats <list>` flag: also emit `webp`/`avif` variants (default quality) alongside the original for every resized image, named `<basename>.<format>`. The `/json` manifest gains a per-image `formats` map (`{ webp: {...}, avif: {...} }`), each entry including the correct `type` MIME so a frontend can build `<picture><source type=...>`. The original entry's `sizes`/`srcset`/`src` fields are unchanged for backward compatibility.
+- `npx` support: added a `bin` entry (`sharp-resizer-server`) and a `#!/usr/bin/env node` shebang, so the CLI can be run via `npx sharp-resizer-server` without a local install.
+- `Dockerfile`: `node:24-slim` image, production-only deps, `input`/`output` volumes, and an `ENTRYPOINT`/`CMD` split so flags are overridable at `docker run` time. See the README's [Docker](README.md#docker) section.
+
+### Improvements
+- Extended the Vitest suite to cover format generation, format-tagged manifest entries, and no-flag backward compatibility.
+- README documents `--formats`, `npx`, and Docker usage.
+
 ## [1.0.0] — 2026-06-28
 
 ### Breaking changes

@@ -94,4 +94,22 @@ describe('GET /images/json', () => {
     const res = await supertest(app).get('/images/json')
     expect(res.body['newImage.jpg']).toBeDefined()
   })
+
+  it('includes type-tagged webp/avif format entries when --formats siblings are present', async () => {
+    await seedImage(path.join(tmpDir, 'output', '100', 'withFormats.jpg'))
+    // seedImage always writes a JPEG regardless of extension — fine, buildSrcset only cares about the extension.
+    await seedImage(path.join(tmpDir, 'output', '100', 'withFormats.webp'))
+    await seedImage(path.join(tmpDir, 'output', '100', 'withFormats.avif'))
+    cache.invalidate()
+
+    const res = await supertest(app).get('/images/json')
+    const entry = res.body['withFormats.jpg']
+    expect(entry).toBeDefined()
+    expect(entry.formats.webp).toMatchObject({ type: 'image/webp', src: '/images/output/100/withFormats.webp' })
+    expect(entry.formats.avif).toMatchObject({ type: 'image/avif', src: '/images/output/100/withFormats.avif' })
+
+    // Original entry's own fields are untouched by the presence of formats
+    expect(entry.sizes).toBe('100w')
+    expect(entry.src).toBe('/images/output/100/withFormats.jpg')
+  })
 })

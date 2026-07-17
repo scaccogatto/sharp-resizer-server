@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { resizeImage } from '../src/resizer.js'
 import sharp from 'sharp'
-import { mkdtemp, rm, readFile } from 'node:fs/promises'
+import { mkdtemp, rm, access } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -65,5 +65,43 @@ describe('resizeImage', () => {
     // 72 * 19.2 = 1382.4 — the multiplier produces floats
     const ok = await resizeImage(src, dst, 72 * 19.2)
     expect(ok).toBe(true)
+  })
+
+  it('does not emit format siblings when formats is omitted (no-flag behavior unchanged)', async () => {
+    const src = path.join(tmpDir, 'no-formats-src.jpg')
+    const dst = path.join(tmpDir, 'no-formats-out.jpg')
+    await createTestImage(src)
+
+    const ok = await resizeImage(src, dst, 100)
+    expect(ok).toBe(true)
+
+    await expect(access(path.join(tmpDir, 'no-formats-out.webp'))).rejects.toThrow()
+    await expect(access(path.join(tmpDir, 'no-formats-out.avif'))).rejects.toThrow()
+  })
+
+  it('emits <basename>.webp and <basename>.avif siblings when formats is given', async () => {
+    const src = path.join(tmpDir, 'formats-src.jpg')
+    const dst = path.join(tmpDir, 'formats', 'formats-out.jpg')
+    await createTestImage(src, 400, 200)
+
+    const ok = await resizeImage(src, dst, 100, ['webp', 'avif'])
+    expect(ok).toBe(true)
+
+    const webpPath = path.join(tmpDir, 'formats', 'formats-out.webp')
+    const avifPath = path.join(tmpDir, 'formats', 'formats-out.avif')
+
+    const [jpegMeta, webpMeta, avifMeta] = await Promise.all([
+      sharp(dst).metadata(),
+      sharp(webpPath).metadata(),
+      sharp(avifPath).metadata(),
+    ])
+
+    expect(jpegMeta.format).toBe('jpeg')
+    expect(webpMeta.mediaType).toBe('image/webp')
+    expect(avifMeta.mediaType).toBe('image/avif') // libvips reports the raw `format` as 'heif' for AVIF containers
+
+    // Same target width as the original, across every emitted format
+    expect(webpMeta.width).toBe(100)
+    expect(avifMeta.width).toBe(100)
   })
 })
