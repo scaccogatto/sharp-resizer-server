@@ -5,7 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-The next release must be a major version (2.0.0) because of the breaking changes below.
+## [2.0.0] - 2026-10-13
+
+This is a major release because of the breaking changes below.
 
 ### Changed
 - **Breaking:** Node.js 22 or newer is now required (`chalk` 6 and `p-queue` 10 dropped Node.js 20, which is end-of-life).
@@ -74,6 +76,7 @@ The next release must be a major version (2.0.0) because of the breaking changes
 | fs-extra | 4.0.2 | removed (node:fs/promises) |
 | recursive-readdir | 2.2.1 | removed (node:fs/promises) |
 
-[Unreleased]: https://github.com/scaccogatto/sharp-resizer-server/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/scaccogatto/sharp-resizer-server/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/scaccogatto/sharp-resizer-server/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/scaccogatto/sharp-resizer-server/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/scaccogatto/sharp-resizer-server/releases/tag/v1.0.0
