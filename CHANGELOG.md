@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Breaking changes
+- Node.js 22 or newer is now required (`chalk` 6 and `p-queue` 10 dropped Node.js 20, which is end-of-life).
+
+### Maintenance
+- Dependencies refreshed: `chalk` 6, `p-queue` 10, `express` 5.3, `sharp` 0.35.5, `vitest` 5, `supertest` 7.3.
+- CI actions bumped to `actions/checkout` v7 and `actions/setup-node` v7. Dependabot config and auto-merge workflow added.
+
 ## [1.1.0] — 2026-07-17
 
 ### New features
