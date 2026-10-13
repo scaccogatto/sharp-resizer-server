@@ -40,6 +40,17 @@ async function waitFor(predicate, ms = 3000) {
   throw new Error('waitFor timed out')
 }
 
+/**
+ * Waits for the watcher to be ready, then lets the native watch handles arm.
+ * On macOS, fs.watch is backed by FSEvents, whose stream can start a few ms
+ * after chokidar emits 'ready': a directory created inside that window is
+ * never reported, which made the fan-out tests flaky locally.
+ */
+async function armed(ready) {
+  await ready
+  await new Promise(r => setTimeout(r, 100))
+}
+
 describe('setupWatcher fan-out', () => {
   it('resizes an image into an already-tracked folder when the image is added', async () => {
     const calls = []
@@ -53,7 +64,7 @@ describe('setupWatcher fan-out', () => {
       onInvalidate: noop,
       log: noop,
     })
-    await ready
+    await armed(ready)
 
     // Add an image AFTER the watcher is ready and folder-100 is already tracked
     await writeFile(path.join(inputDir, '100', 'hero.jpg'), 'fake-image')
@@ -80,7 +91,7 @@ describe('setupWatcher fan-out', () => {
       onInvalidate: noop,
       log: noop,
     })
-    await ready
+    await armed(ready)
 
     // Clear any initial-scan calls so we see only the fan-out call
     calls.length = 0
@@ -110,7 +121,7 @@ describe('setupWatcher fan-out', () => {
       onInvalidate: noop,
       log: noop,
     })
-    await ready
+    await armed(ready)
     calls.length = 0
 
     // Create a LARGER folder — small.jpg should NOT be fanned out without upscale
@@ -137,7 +148,7 @@ describe('setupWatcher fan-out', () => {
       onInvalidate: noop,
       log: noop,
     })
-    await ready
+    await armed(ready)
     calls.length = 0
 
     await mkdir(path.join(inputDir, '100'))
