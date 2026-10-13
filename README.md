@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/scaccogatto/sharp-resizer-server/actions/workflows/ci.yml/badge.svg)](https://github.com/scaccogatto/sharp-resizer-server/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Node ≥20](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
+[![Node ≥22](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](package.json)
 
 Watch a directory tree of source images and automatically produce responsive,
 srcset-ready resized copies — then serve them (and a JSON manifest) over HTTP.
@@ -35,7 +35,7 @@ output/           ← generated automatically
 
 | Requirement | Version |
 |---|---|
-| Node.js | ≥ 20 |
+| Node.js | ≥ 22 |
 | libvips | bundled via `sharp` prebuilt — no extra install needed on Linux/macOS/Windows |
 
 ## Install and run
