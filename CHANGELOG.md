@@ -1,15 +1,33 @@
 # Changelog
 
+All notable changes to this project are documented in this file.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [Unreleased]
 
-The next release must be a major version (2.0.0) because of the Node.js floor change below.
+The next release must be a major version (2.0.0) because of the breaking changes below.
 
-### Breaking changes
-- Node.js 22 or newer is now required (`chalk` 6 and `p-queue` 10 dropped Node.js 20, which is end-of-life).
-
-### Maintenance
+### Changed
+- **Breaking:** Node.js 22 or newer is now required (`chalk` 6 and `p-queue` 10 dropped Node.js 20, which is end-of-life).
+- **Breaking:** `/json` manifest: `srcset` `w` descriptors are now the real pixel widths of each variant (folder × multiplier, e.g. `1920w, 1382w`) instead of the folder labels (`100w, 72w`), which made browsers always download the largest file. The invalid `sizes` field (`"100w"`) is replaced by `width`, the pixel width of the largest variant. Set the `sizes` attribute in your markup.
+- **Breaking:** `/json` manifest: every URL now ends with a `?v=` token derived from the file's modification time, and file names are percent-encoded.
+- **Breaking:** Output files are now served as `immutable` only through the versioned `?v=` URLs. Plain URLs get `Cache-Control: no-cache` and revalidate through `ETag`/`Last-Modified`, because a re-render rewrites the file in place.
+- **Breaking:** `-o, --output` is now served under its last path segment (`-o public/images` → `/images/images/...`, previously `/images/public/images/...`, and an absolute path produced a broken route). The segment must be URL-safe.
+- **Breaking:** `-m`, `-t` and `-p` must be positive integers (`-p` at most 65535), and `-e` must be made of URL-safe segments. Invalid values now fail with a clear CLI error instead of crashing at startup.
 - Dependencies refreshed: `chalk` 6, `p-queue` 10, `express` 5.3, `sharp` 0.35.5, `vitest` 5, `supertest` 7.3.
 - CI actions bumped to `actions/checkout` v7 and `actions/setup-node` v7. Dependabot config added (weekly npm and GitHub Actions updates).
+- `package.json` gains a `files` allowlist, so a pack ships only the runtime code and docs.
+- CI tests the Node.js 22 floor and Node.js 24, runs `oxlint` and `tsc` (strict `checkJs` on the JSDoc types), builds the Docker image, cancels superseded runs and has a timeout. Pushes run CI on `master` only.
+- Dependabot also updates the Docker base image, and its patch and minor updates (except `0.x` minors) are auto-merged once CI passes.
+
+### Fixed
+- Overwriting a source image in place now re-renders it (the watcher ignored `change` events).
+- Deleting a source image now also deletes its `--formats` `.webp`/`.avif` siblings, which previously stayed on disk and showed up as orphan manifest entries.
+- Deleting a source image no longer deletes outputs that a same-named image in another source folder still produces: those are re-rendered from the remaining source. A warning is logged when the same image name exists in several source folders.
+- README: the package is not published on npm, so it now documents `npx github:scaccogatto/sharp-resizer-server` instead of `npx sharp-resizer-server`, which never worked.
+
+### Security
+- The Docker image runs as the unprivileged `node` user and its `node:24-slim` base image is pinned by digest (kept current by Dependabot).
 
 ## [1.1.0] — 2026-07-17
 
@@ -55,3 +73,7 @@ The next release must be a major version (2.0.0) because of the Node.js floor ch
 | lodash | 4.17.4 | removed (native JS) |
 | fs-extra | 4.0.2 | removed (node:fs/promises) |
 | recursive-readdir | 2.2.1 | removed (node:fs/promises) |
+
+[Unreleased]: https://github.com/scaccogatto/sharp-resizer-server/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/scaccogatto/sharp-resizer-server/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/scaccogatto/sharp-resizer-server/releases/tag/v1.0.0
