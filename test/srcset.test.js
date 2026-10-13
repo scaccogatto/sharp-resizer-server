@@ -1,5 +1,19 @@
 import { describe, it, expect } from 'vitest'
-import { isValidFolder, getTargetFolders, buildSrcset } from '../src/srcset.js'
+import { isValidFolder, getTargetFolders, buildSrcset, folderWidth } from '../src/srcset.js'
+
+/** Default CLI multiplier: -m 1920 → folder 100 is 1920 px wide. */
+const opts = { outDirName: 'output', entryPoint: 'images', multiplier: 19.2 }
+
+/**
+ * Returns the manifest entry for key, failing the test when it is missing.
+ * @param {ReturnType<typeof buildSrcset>} manifest
+ * @param {string} key
+ */
+function entryOf(manifest, key) {
+  const entry = manifest[key]
+  if (!entry) throw new Error(`missing manifest entry ${key}`)
+  return entry
+}
 
 describe('isValidFolder', () => {
   it('accepts numeric strings', () => {
@@ -40,124 +54,134 @@ describe('getTargetFolders', () => {
   })
 })
 
+describe('folderWidth', () => {
+  it('is folder × multiplier, rounded to whole pixels', () => {
+    expect(folderWidth('100', 19.2)).toBe(1920)
+    expect(folderWidth('72', 19.2)).toBe(1382)
+    expect(folderWidth('16', 19.2)).toBe(307)
+    expect(folderWidth('100', 12.8)).toBe(1280)
+  })
+})
+
 describe('buildSrcset', () => {
   // Oracle derived from the README example
   const bigFiles = ['100/bigImage.jpg', '72/bigImage.jpg', '37/bigImage.jpg', '26/bigImage.jpg', '16/bigImage.jpg']
   const mediumFiles = ['37/mediumImage.png', '26/mediumImage.png', '16/mediumImage.png']
 
-  it('produces correct sizes, srcset, and src for a full-resolution image', () => {
-    const result = buildSrcset(bigFiles, 'output', 'images')
+  it('uses real pixel widths as srcset w descriptors, largest first', () => {
+    const entry = entryOf(buildSrcset(bigFiles, opts), 'bigImage.jpg')
 
-    expect(result['bigImage.jpg']).toMatchObject({
-      sizes: '100w',
-      src: '/images/output/100/bigImage.jpg',
-    })
-
-    // All 5 variants must appear in srcset, largest first
-    const variants = result['bigImage.jpg'].srcset.split(', ')
-    expect(variants).toHaveLength(5)
-    expect(variants[0]).toBe('/images/output/100/bigImage.jpg 100w')
-    expect(variants[4]).toBe('/images/output/16/bigImage.jpg 16w')
+    expect(entry).toMatchObject({ width: 1920, src: '/images/output/100/bigImage.jpg' })
+    expect(entry.srcset).toBe(
+      '/images/output/100/bigImage.jpg 1920w, /images/output/72/bigImage.jpg 1382w, ' +
+        '/images/output/37/bigImage.jpg 710w, /images/output/26/bigImage.jpg 499w, ' +
+        '/images/output/16/bigImage.jpg 307w',
+    )
   })
 
-  it('produces correct sizes, srcset, and src for a mid-resolution image', () => {
-    const result = buildSrcset(mediumFiles, 'output', 'images')
+  it('does not emit an invalid "Nw" sizes value', () => {
+    const entry = entryOf(buildSrcset(bigFiles, opts), 'bigImage.jpg')
+    expect(entry).not.toHaveProperty('sizes')
+  })
 
-    expect(result['mediumImage.png']).toMatchObject({
-      sizes: '37w',
-      src: '/images/output/37/mediumImage.png',
-    })
-    expect(result['mediumImage.png'].srcset.split(', ')).toHaveLength(3)
+  it('derives widths from the multiplier', () => {
+    const entry = entryOf(buildSrcset(['100/x.jpg', '50/x.jpg'], { ...opts, multiplier: 12.8 }), 'x.jpg')
+    expect(entry.width).toBe(1280)
+    expect(entry.srcset).toBe('/images/output/100/x.jpg 1280w, /images/output/50/x.jpg 640w')
+  })
+
+  it('produces correct width, srcset, and src for a mid-resolution image', () => {
+    const entry = entryOf(buildSrcset(mediumFiles, opts), 'mediumImage.png')
+    expect(entry).toMatchObject({ width: 710, src: '/images/output/37/mediumImage.png' })
+    expect(entry.srcset.split(', ')).toHaveLength(3)
   })
 
   it('handles multiple images together', () => {
-    const result = buildSrcset([...bigFiles, ...mediumFiles], 'output', 'images')
+    const result = buildSrcset([...bigFiles, ...mediumFiles], opts)
     expect(Object.keys(result)).toHaveLength(2)
-    expect(result['bigImage.jpg'].sizes).toBe('100w')
-    expect(result['mediumImage.png'].sizes).toBe('37w')
+    expect(entryOf(result, 'bigImage.jpg').width).toBe(1920)
+    expect(entryOf(result, 'mediumImage.png').width).toBe(710)
   })
 
   it('returns an empty object when there are no files', () => {
-    expect(buildSrcset([], 'output', 'images')).toEqual({})
+    expect(buildSrcset([], opts)).toEqual({})
   })
 
   it('ignores non-numeric top-level directories', () => {
-    const mixed = ['100/a.jpg', 'thumbs/a.jpg', '.cache/a.jpg']
-    const result = buildSrcset(mixed, 'output', 'images')
-    // Only the 100/ file should appear
-    const entry = result['a.jpg']
-    expect(entry.sizes).toBe('100w')
+    const entry = entryOf(buildSrcset(['100/a.jpg', 'thumbs/a.jpg', '.cache/a.jpg'], opts), 'a.jpg')
+    expect(entry.width).toBe(1920)
     expect(entry.srcset.split(', ')).toHaveLength(1)
   })
 
   it('respects the entryPoint URL prefix', () => {
-    const result = buildSrcset(['100/x.jpg'], 'output', 'static')
-    expect(result['x.jpg'].src).toContain('/static/output/')
-    expect(result['x.jpg'].srcset).toContain('/static/output/100/')
+    const entry = entryOf(buildSrcset(['100/x.jpg'], { ...opts, entryPoint: 'static' }), 'x.jpg')
+    expect(entry.src).toContain('/static/output/')
+    expect(entry.srcset).toContain('/static/output/100/')
   })
 
-  it('multiplier invariant: -m 1920 means folder-100 maps to 1920px label in sizes', () => {
-    // The sizes field is the folder name + 'w', not the pixel width.
-    // Pixel width is computed externally as folder * (m/100).
-    const result = buildSrcset(['100/img.jpg'], 'output', 'images')
-    expect(result['img.jpg'].sizes).toBe('100w')
+  it('appends the version token as ?v= when one is known for the file', () => {
+    const versions = new Map([['100/x.jpg', 'abc']])
+    const entry = entryOf(buildSrcset(['100/x.jpg', '72/x.jpg'], { ...opts, versions }), 'x.jpg')
+    expect(entry.src).toBe('/images/output/100/x.jpg?v=abc')
+    expect(entry.srcset).toBe('/images/output/100/x.jpg?v=abc 1920w, /images/output/72/x.jpg 1382w')
+  })
+
+  it('percent-encodes file names so spaces and commas do not break srcset parsing', () => {
+    const entry = entryOf(buildSrcset(['100/my photo, 1.jpg'], opts), 'my photo, 1.jpg')
+    expect(entry.srcset).toBe('/images/output/100/my%20photo%2C%201.jpg 1920w')
   })
 
   it('no-flag behavior unchanged: original entry has no formats key without sibling webp/avif files', () => {
-    const result = buildSrcset(bigFiles, 'output', 'images')
-    expect(result['bigImage.jpg'].formats).toBeUndefined()
-    expect(Object.keys(result['bigImage.jpg'])).toEqual(['sizes', 'srcset', 'src'])
+    const entry = entryOf(buildSrcset(bigFiles, opts), 'bigImage.jpg')
+    expect(entry.formats).toBeUndefined()
+    expect(Object.keys(entry)).toEqual(['width', 'srcset', 'src'])
   })
 
-  it('attaches webp/avif siblings under the original entry\'s formats map with correct type MIME', () => {
+  it("attaches webp/avif siblings under the original entry's formats map with correct type MIME", () => {
     const files = [
       '100/hero.jpg', '72/hero.jpg', '37/hero.jpg',
       '100/hero.webp', '72/hero.webp', '37/hero.webp',
       '100/hero.avif', '72/hero.avif', '37/hero.avif',
     ]
-    const result = buildSrcset(files, 'output', 'images')
+    const result = buildSrcset(files, opts)
+    const entry = entryOf(result, 'hero.jpg')
 
-    // Original entry stays byte-identical for backward compatibility
-    expect(result['hero.jpg']).toMatchObject({
-      sizes: '100w',
-      srcset: '/images/output/100/hero.jpg 100w, /images/output/72/hero.jpg 72w, /images/output/37/hero.jpg 37w',
+    expect(entry).toMatchObject({
+      width: 1920,
+      srcset: '/images/output/100/hero.jpg 1920w, /images/output/72/hero.jpg 1382w, /images/output/37/hero.jpg 710w',
       src: '/images/output/100/hero.jpg',
     })
-
-    expect(result['hero.jpg'].formats.webp).toMatchObject({
-      sizes: '100w',
-      srcset: '/images/output/100/hero.webp 100w, /images/output/72/hero.webp 72w, /images/output/37/hero.webp 37w',
+    expect(entry.formats?.webp).toMatchObject({
+      width: 1920,
+      srcset: '/images/output/100/hero.webp 1920w, /images/output/72/hero.webp 1382w, /images/output/37/hero.webp 710w',
       src: '/images/output/100/hero.webp',
       type: 'image/webp',
     })
-    expect(result['hero.jpg'].formats.avif).toMatchObject({
-      sizes: '100w',
-      srcset: '/images/output/100/hero.avif 100w, /images/output/72/hero.avif 72w, /images/output/37/hero.avif 37w',
+    expect(entry.formats?.avif).toMatchObject({
+      width: 1920,
+      srcset: '/images/output/100/hero.avif 1920w, /images/output/72/hero.avif 1382w, /images/output/37/hero.avif 710w',
       src: '/images/output/100/hero.avif',
       type: 'image/avif',
     })
 
-    // No standalone 'hero.webp' / 'hero.avif' top-level keys — they live under formats
+    // No standalone 'hero.webp' / 'hero.avif' top-level keys: they live under formats
     expect(result['hero.webp']).toBeUndefined()
     expect(result['hero.avif']).toBeUndefined()
   })
 
   it('attaches only the formats that are actually present (partial --formats)', () => {
     const files = ['100/hero.jpg', '72/hero.jpg', '100/hero.webp', '72/hero.webp']
-    const result = buildSrcset(files, 'output', 'images')
+    const entry = entryOf(buildSrcset(files, opts), 'hero.jpg')
 
-    expect(result['hero.jpg'].formats).toHaveProperty('webp')
-    expect(result['hero.jpg'].formats).not.toHaveProperty('avif')
+    expect(entry.formats).toHaveProperty('webp')
+    expect(entry.formats).not.toHaveProperty('avif')
   })
 
   it('treats a stem with only a convertible-format extension as its own standalone entry', () => {
-    // A genuine .webp source dropped without --formats — no original to attach to.
-    const result = buildSrcset(['100/plain.webp', '72/plain.webp'], 'output', 'images')
+    // A genuine .webp source dropped without --formats: no original to attach to.
+    const entry = entryOf(buildSrcset(['100/plain.webp', '72/plain.webp'], opts), 'plain.webp')
 
-    expect(result['plain.webp']).toMatchObject({
-      sizes: '100w',
-      src: '/images/output/100/plain.webp',
-    })
-    expect(result['plain.webp'].formats).toBeUndefined()
+    expect(entry).toMatchObject({ width: 1920, src: '/images/output/100/plain.webp' })
+    expect(entry.formats).toBeUndefined()
   })
 })
