@@ -7,7 +7,7 @@ import path from 'node:path'
  * Creates the output directory if it does not exist.
  *
  * When `formats` is non-empty, also emits a `<basename>.<format>` sibling next
- * to `outputPath` for each format, via sharp's `.webp()`/`.avif()` at default
+ * to `outputPath` for each format, via sharp's `toFormat()` at default
  * quality (issue: --formats).
  *
  * Resolves issue #4 (error handling): failures are caught and returned as false
@@ -16,7 +16,7 @@ import path from 'node:path'
  * @param {string} inputPath        - Absolute or relative path to source image
  * @param {string} outputPath       - Absolute or relative path for resized output
  * @param {number} widthPx          - Target width in pixels
- * @param {('webp'|'avif')[]} [formats] - Extra formats to also emit alongside the original
+ * @param {readonly import('./srcset.js').ConvertibleFormat[]} [formats] - Extra formats to also emit alongside the original
  * @returns {Promise<boolean>} true on success, false on failure
  */
 export async function resizeImage(inputPath, outputPath, widthPx, formats = []) {
@@ -29,13 +29,16 @@ export async function resizeImage(inputPath, outputPath, widthPx, formats = []) 
     for (const format of formats) {
       await sharp(inputPath)
         .resize({ width })
-        [format]()
+        .toFormat(format)
         .toFile(path.join(dir, `${name}.${format}`))
     }
     return true
   } catch (err) {
     // Surface the error so the caller can log it; do not crash the queue
-    console.error(`[SHARP] failed to resize ${inputPath} → ${outputPath}:`, err.message)
+    console.error(
+      `[SHARP] failed to resize ${inputPath} → ${outputPath}:`,
+      err instanceof Error ? err.message : String(err),
+    )
     return false
   }
 }

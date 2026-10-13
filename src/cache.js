@@ -6,10 +6,12 @@
  * @returns {{ get: () => {data: unknown, etag: string} | null, set: (data: unknown, etag: string) => void, invalidate: () => void }}
  */
 export function createCache() {
+  /** @type {{data: unknown, etag: string} | null} */
   let entry = null
 
   return {
     get: () => entry,
+    /** @param {unknown} data @param {string} etag */
     set: (data, etag) => {
       entry = { data, etag }
     },

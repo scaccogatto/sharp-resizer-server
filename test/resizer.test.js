@@ -5,6 +5,7 @@ import { mkdtemp, rm, access } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
+/** @type {string} */
 let tmpDir
 
 beforeAll(async () => {
@@ -18,6 +19,7 @@ afterAll(async () => {
 /**
  * Creates a minimal JPEG in-memory using sharp and writes it to disk.
  * This avoids shipping any fixture binaries to the repo.
+ * @param {string} filePath
  */
 async function createTestImage(filePath, width = 200, height = 100) {
   await sharp({
@@ -62,7 +64,7 @@ describe('resizeImage', () => {
     const dst = path.join(tmpDir, 'float-width-out.jpg')
     await createTestImage(src, 300, 200)
 
-    // 72 * 19.2 = 1382.4 — the multiplier produces floats
+    // 72 * 19.2 = 1382.4: the multiplier produces floats
     const ok = await resizeImage(src, dst, 72 * 19.2)
     expect(ok).toBe(true)
   })
