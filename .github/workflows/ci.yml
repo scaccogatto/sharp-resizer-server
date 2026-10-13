@@ -2,30 +2,66 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [master]
   pull_request:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    # Required status check: keep the name stable (no matrix, which would rename it).
+    # The Node 22 floor and Node 24 run as steps of this one job instead.
     name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - name: Set up Node 22 (engines floor)
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (Node 22)
+        run: npm ci
+
+      - name: Run tests (Node 22)
+        run: npm test
+
+      - name: Set up Node 24
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: npm
 
-      - name: Install dependencies
+      - name: Install dependencies (Node 24)
         run: npm ci
 
-      - name: Run tests
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests (Node 24)
         run: npm test
 
       - name: Smoke test (--help exits 0)
         run: node index.js --help
+
+      - name: Build Docker image
+        run: docker build -t sharp-resizer-server:ci .
+
+      - name: Smoke test Docker image (non-root, --help exits 0)
+        run: |
+          test "$(docker run --rm --entrypoint id sharp-resizer-server:ci -un)" = node
+          docker run --rm sharp-resizer-server:ci --help
