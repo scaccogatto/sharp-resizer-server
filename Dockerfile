@@ -1,5 +1,5 @@
 # Digest-pinned base image, kept current by Dependabot (docker ecosystem)
-FROM node:24-slim@sha256:d6aa754f16b3197301076f047b5def2f02ea1dbbc2ca920407d46d7ec7f87b20
+FROM node:26-slim@sha256:193fe51b64e77981119c98c2002c9e32a70e2f006fb4d25068ce0558998917f0
 
 WORKDIR /app
 
